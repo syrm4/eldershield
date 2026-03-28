@@ -9,7 +9,6 @@ requireLogin();
 requireRole('caregiver');
 
 $user   = currentUser();
-$flash  = getFlash();
 $errors = [];
 
 // ── Handle retry payment ──────────────────────────────────────
@@ -51,12 +50,9 @@ require_once __DIR__ . '/../includes/header.php';
 <div class="page-container">
     <div class="page-header">
         <h1>Invoice History</h1>
-        <a href="<?= APP_URL ?>/pages/billing.php" class="btn btn-outline btn-sm">← Billing Summary</a>
+        <a href="<?= APP_URL ?>/pages/billing.php" class="btn btn-outline btn-sm">&larr; Billing Summary</a>
     </div>
 
-    <?php if ($flash): ?>
-        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
-    <?php endif; ?>
     <?php foreach ($errors as $err): ?>
         <div class="alert alert-danger"><?= e($err) ?></div>
     <?php endforeach; ?>
@@ -116,7 +112,7 @@ require_once __DIR__ . '/../includes/header.php';
         </div>
     </div>
     <a href="<?= APP_URL ?>/pages/invoice_history.php" class="btn btn-outline btn-sm"
-       style="margin-bottom:1.5rem;">← All Invoices</a>
+       style="margin-bottom:1.5rem;">&larr; All Invoices</a>
     <?php endif; ?>
 
     <!-- ── Invoice list ────────────────────────────────────── -->

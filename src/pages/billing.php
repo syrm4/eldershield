@@ -8,8 +8,7 @@ require_once __DIR__ . '/../includes/helpers.php';
 require_once __DIR__ . '/../includes/billing_helper.php';
 
 requireLogin();
-$user  = currentUser();
-$flash = getFlash();
+$user   = currentUser();
 $errors = [];
 
 // ── Handle retry payment POST ─────────────────────────────────
@@ -52,10 +51,6 @@ require_once __DIR__ . '/../includes/header.php';
     <div class="page-header">
         <h1>Billing</h1>
     </div>
-
-    <?php if ($flash): ?>
-        <div class="alert alert-<?= e($flash['type']) ?>"><?= e($flash['message']) ?></div>
-    <?php endif; ?>
 
     <?php foreach ($errors as $err): ?>
         <div class="alert alert-danger"><?= e($err) ?></div>
@@ -132,7 +127,7 @@ require_once __DIR__ . '/../includes/header.php';
                         <small style="color:var(--color-muted)"><?= e($link['email']) ?></small>
                     </td>
                     <td><?= date("M j, Y", strtotime($link["created_at"])) ?></td>
-                    <td><?= formatCents(RATE_CENTS) ?>/mo</td>
+                    <td><?= formatCents(PREMIUM_MONTHLY_CENTS) ?>/mo</td>
                 </tr>
             <?php endforeach; ?>
             </tbody>
