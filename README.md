@@ -251,7 +251,7 @@ Built on **MySQL** with 5 tables in a fully relational design.
 - **Targeted** — admin sends a private message to one specific user selected from a dropdown
 - **Edit propagation** — editing a broadcast notification updates all recipient copies simultaneously
 - **Billing notifications** — sent automatically on invoice success or failure
-- Mark read/unread via AJAX without page reload
+- **Read state** — mark read/unread via AJAX without page reload
 
 ---
 
