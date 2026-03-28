@@ -507,11 +507,12 @@ include __DIR__ . '/../includes/header.php';
         </form>
         <?php if ($user['role'] === 'admin'): ?>
         <div class="danger-zone">
-            <a href="<?= APP_URL ?>/api/delete_incident.php?id=<?= $incidentId ?>&csrf=<?= urlencode(csrfToken()) ?>"
-               class="btn btn-danger"
-               onclick="return confirm('Permanently delete this incident and all its data?')">
-                🗑️ Delete Incident
-            </a>
+            <form method="POST" action="<?= APP_URL ?>/api/delete_incident.php"
+                  onsubmit="return confirm('Permanently delete this incident and all its data?')">
+                <?= csrfField() ?>
+                <input type="hidden" name="incident_id" value="<?= $incidentId ?>">
+                <button type="submit" class="btn btn-danger">🗑️ Delete Incident</button>
+            </form>
         </div>
         <?php endif; ?>
     </div>
@@ -520,11 +521,12 @@ include __DIR__ . '/../includes/header.php';
     <!-- ── ELDER DELETE ───────────────────────────────────────── -->
     <?php if ($isOwner): ?>
     <div class="elder-controls">
-        <a href="<?= APP_URL ?>/api/delete_incident.php?id=<?= $incidentId ?>&csrf=<?= urlencode(csrfToken()) ?>"
-           class="btn btn-outline-danger btn-sm"
-           onclick="return confirm('Remove this report from your history?')">
-            Remove This Report
-        </a>
+        <form method="POST" action="<?= APP_URL ?>/api/delete_incident.php"
+              onsubmit="return confirm('Remove this report from your history?')">
+            <?= csrfField() ?>
+            <input type="hidden" name="incident_id" value="<?= $incidentId ?>">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Remove This Report</button>
+        </form>
     </div>
     <?php endif; ?>
 
@@ -586,11 +588,9 @@ function editScreenshotChangeHandler(e) {
 document.getElementById('edit_screenshot')?.addEventListener('change', editScreenshotChangeHandler);
 
 function clearEditImage() {
-    // Replace the file input with a fresh clone so the browser truly clears it
     const inp = document.getElementById('edit_screenshot');
     const newInp = inp.cloneNode(true);
     inp.parentNode.replaceChild(newInp, inp);
-    // Re-attach the change listener to the new input
     newInp.addEventListener('change', editScreenshotChangeHandler);
     document.getElementById('editImagePreview').innerHTML = '';
     document.getElementById('editImagePreview').classList.add('hidden');
