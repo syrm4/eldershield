@@ -1,6 +1,6 @@
 <?php
 // ============================================================
-// includes/ai_service.php  —  Ollama (Windows MAMP)
+// includes/ai_service.php  —  Ollama integration (cross-platform)
 // ============================================================
 
 require_once __DIR__ . '/../config/config.php';
@@ -79,26 +79,61 @@ function analyzeIncident(string $text, ?string $imagePath = null): array {
 }
 
 function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath = null): void {
-    $phpBinaries = glob('C:\\MAMP\\bin\\php\\php*\\php.exe');
-    if (!empty($phpBinaries)) {
-        $phpBin = end($phpBinaries);
-    } else {
-        $phpBin = 'php';
-        foreach (['C:\\MAMP\\bin\\php\\php8.3.0\\php.exe','C:\\MAMP\\bin\\php\\php8.2.0\\php.exe','C:\\php\\php.exe'] as $c) {
-            if (file_exists($c)) { $phpBin = $c; break; }
-        }
-    }
-
-    $scriptPath = str_replace('/', DIRECTORY_SEPARATOR, APP_ROOT . '/api/run_analysis.php');
+    $scriptPath = APP_ROOT . '/api/run_analysis.php';
     $tmpFile    = tempnam(sys_get_temp_dir(), 'es_');
     file_put_contents($tmpFile, $text);
-    $imageArg = ($imagePath && $imagePath !== '') ? escapeshellarg($imagePath) : '""';
+    $imageArg = ($imagePath && $imagePath !== '') ? $imagePath : '';
 
-    $cmd = sprintf('start /B "" "%s" "%s" %s "%s" %s > NUL 2>&1',
-        $phpBin, $scriptPath,
-        escapeshellarg((string)$incidentId), $tmpFile, $imageArg
-    );
-    pclose(popen($cmd, 'r'));
+    if (PHP_OS_FAMILY === 'Windows') {
+        // ── Windows (WAMP or MAMP for Windows) ──────────────────
+        // Locate php.exe — checks MAMP, WAMP, and system PATH in order
+        $phpBin = 'php'; // fallback to system PATH
+        $candidates = array_merge(
+            glob('C:\\MAMP\\bin\\php\\php*\\php.exe') ?: [],
+            glob('C:\\wamp64\\bin\\php\\php*\\php.exe') ?: [],
+            glob('C:\\wamp\\bin\\php\\php*\\php.exe') ?: [],
+            ['C:\\php\\php.exe']
+        );
+        foreach ($candidates as $candidate) {
+            if (file_exists($candidate)) {
+                $phpBin = $candidate;
+                break;
+            }
+        }
+        $scriptPath = str_replace('/', DIRECTORY_SEPARATOR, $scriptPath);
+        $cmd = sprintf(
+            'start /B "" %s %s %s %s %s > NUL 2>&1',
+            escapeshellarg($phpBin),
+            escapeshellarg($scriptPath),
+            escapeshellarg((string)$incidentId),
+            escapeshellarg($tmpFile),
+            escapeshellarg($imageArg)
+        );
+        pclose(popen($cmd, 'r'));
+    } else {
+        // ── Mac / Linux (MAMP on Mac or any Unix-based server) ───
+        // Locate php binary — checks MAMP locations then falls back to system php
+        $phpBin = 'php'; // fallback to system PATH
+        $candidates = array_merge(
+            glob('/Applications/MAMP/bin/php/php*/bin/php') ?: [],
+            ['/usr/local/bin/php', '/usr/bin/php']
+        );
+        foreach ($candidates as $candidate) {
+            if (file_exists($candidate)) {
+                $phpBin = $candidate;
+                break;
+            }
+        }
+        $cmd = sprintf(
+            'nohup %s %s %s %s %s > /dev/null 2>&1 &',
+            escapeshellarg($phpBin),
+            escapeshellarg($scriptPath),
+            escapeshellarg((string)$incidentId),
+            escapeshellarg($tmpFile),
+            escapeshellarg($imageArg)
+        );
+        exec($cmd);
+    }
 }
 
 function parseAIResponse(string $rawText): array {
