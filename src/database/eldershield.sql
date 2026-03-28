@@ -9,19 +9,14 @@
 --         In phpMyAdmin: Import > choose this file > Go
 --         In terminal:   mysql -u root -p < eldershield.sql
 --
--- Step 2: Immediately after importing, run seed.php to replace
---         the placeholder password hashes with real bcrypt hashes.
---         In terminal:   php src/database/seed.php
---         In browser:    http://localhost/eldershield/src/database/seed.php
+-- Step 2: Optionally run seed.php to populate full demo data
+--         (incidents, caregiver links, analytics data).
+--         In browser: http://localhost:8888/eldershield/src/database/seed.php
 --
--- ⛔  DO NOT skip Step 2. The placeholder hashes in this file
---     are NOT valid. Without running seed.php, nobody will be
---     able to log in.
---
--- Default login credentials after running seed.php:
---     Admin:     admin@eldershield.com  / password: admin123
---     Elder:     dorothy@example.com   / password: elder123
---     Caregiver: sarah@example.com     / password: care123
+-- Default login credentials (three starter accounts below):
+--     Admin:     admin@eldershield.com  / password: password123
+--     Elder:     dorothy@example.com   / password: password123
+--     Caregiver: sarah@example.com     / password: password123
 -- ============================================================
 
 CREATE DATABASE IF NOT EXISTS eldershield
@@ -119,11 +114,11 @@ CREATE TABLE invoices (
 ) ENGINE=InnoDB;
 
 -- ============================================================
--- SEED DATA
--- ⚠️  These placeholder hashes are NOT valid for login.
---     Run database/seed.php immediately after importing this file.
+-- SEED DATA — Three starter accounts (password: password123)
+-- Real bcrypt hashes — login works immediately after import.
+-- Run database/seed.php to add full demo data.
 -- ============================================================
 INSERT INTO users (full_name, email, password_hash, role, plan) VALUES
-    ('Admin User',      'admin@eldershield.com', '$2y$12$placeholder', 'admin',     'premium'),
-    ('Dorothy Johnson', 'dorothy@example.com',   '$2y$12$placeholder', 'elder',     'free'),
-    ('Sarah Johnson',   'sarah@example.com',     '$2y$12$placeholder', 'caregiver', 'free');
+    ('Admin User',      'admin@eldershield.com', '$2y$12$/4HX6Nca5rY5pFPFsvl7e.DySLjawiG4yQeqZ5PTHpvfEbJG.DaxS', 'admin',     'premium'),
+    ('Dorothy Johnson', 'dorothy@example.com',   '$2y$12$pkik9Xmi6VWnycaZyQH0/eP1tqrVT8uvIX2Pxz94fWW6F81Lolce.', 'elder',     'free'),
+    ('Sarah Johnson',   'sarah@example.com',     '$2y$12$6O8f3sn5ZxWKuK.uYOyz/e/M4frnfv4uPAnaj4XqL9OOlLdNrl896', 'caregiver', 'free');
