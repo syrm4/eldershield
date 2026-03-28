@@ -6,6 +6,52 @@ if (defined('APP_TIMEZONE')) date_default_timezone_set(APP_TIMEZONE);
 
 $db = getDB();
 
+// ── Already-seeded guard ──────────────────────────────────────
+// Incidents have no natural unique key, so running this twice
+// would silently duplicate all demo data with no easy way to fix it.
+// Add ?force=1 to the URL to bypass this check and re-seed from scratch.
+$existingIncidents = (int)$db->query('SELECT COUNT(*) FROM incidents')->fetchColumn();
+if ($existingIncidents > 0 && empty($_GET['force'])) {
+    ?>
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>ElderShield — Already Seeded</title>
+        <style>
+            body { font-family: sans-serif; max-width: 540px; margin: 60px auto; padding: 0 20px; color: #333; }
+            h2   { color: #856404; }
+            .box { background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 16px 20px; margin: 16px 0; }
+            .tip { background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 6px; padding: 12px 16px; margin: 16px 0; }
+            code { background: #f4f4f4; padding: 2px 5px; border-radius: 3px; font-size: .9em; }
+        </style>
+    </head>
+    <body>
+        <h2>⚠️ Database Already Seeded</h2>
+        <div class="box">
+            <p>Found <strong><?= $existingIncidents ?> existing incident(s)</strong> in the database.</p>
+            <p>Running seed.php again would create duplicate incidents. No changes have been made.</p>
+        </div>
+        <div class="tip">
+            <strong>To re-seed from scratch:</strong><br>
+            Drop and reimport <code>eldershield.sql</code> in phpMyAdmin, then visit:<br><br>
+            <code><?= htmlspecialchars('http://' . $_SERVER['HTTP_HOST'] . $_SERVER['PHP_SELF'] . '?force=1') ?></code>
+        </div>
+        <p>Remember to <strong>delete this file</strong> when you are done!</p>
+    </body>
+    </html>
+    <?php
+    exit;
+}
+
+// ── Force mode notice ─────────────────────────────────────────
+if (!empty($_GET['force'])) {
+    echo "<p style='background:#f8d7da;border:1px solid #f5c6cb;border-radius:6px;padding:10px 14px;font-family:sans-serif'>
+        ⚠️ <strong>Force mode active.</strong> All existing incidents will be duplicated. 
+        Truncate the incidents and analysis tables first if you want a clean re-seed.
+    </p>";
+}
+
 // ============================================================
 // USERS  [full_name, email, password, role, plan]
 // ============================================================
@@ -314,9 +360,8 @@ foreach ($incidents as [$email, $daysAgo, $content, $status, $prob, $cat, $tacti
     $userId = uid($db, $email);
     if (!$userId) { echo "⚠️ User not found: {$email}<br>"; continue; }
 
-    // Convert daysAgo (float) to a timestamp
-    $secsAgo  = (int)($daysAgo * 86400);
-    $ts       = date('Y-m-d H:i:s', time() - $secsAgo);
+    $secsAgo = (int)($daysAgo * 86400);
+    $ts      = date('Y-m-d H:i:s', time() - $secsAgo);
 
     $incStmt->execute([$userId, $content, $status, $ts]);
     $incId = (int)$db->lastInsertId();
