@@ -260,10 +260,12 @@ Built on **MySQL** with 5 tables in a fully relational design.
 
 ---
 
-## Team
-- Sunny Nguyen
-- Joe Milner
-- Cameron Hubbard
+## Author
+
+**Joe Milner** — [github.com/syrm4](https://github.com/syrm4)
+
+Originally built as a team project with Sunny Nguyen and Cameron Hubbard
+for IS 6465 at the University of Utah's David Eccles School of Business.
 
 ---
 
