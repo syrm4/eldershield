@@ -18,7 +18,7 @@ ElderShield protects elderly users from scams — phishing, impersonation, tech 
 - [Project Overview](#project-overview)
 - [Goals](#goals)
 - [Local Setup](#local-setup)
-- [AI Component](#ai-component-key-differentiator)
+- [AI Component](#ai-component)
 - [Database Schema](#database-schema)
 - [CRUD Functionality](#crud-functionality)
 - [Subscription & Billing](#subscription--billing)
@@ -136,7 +136,7 @@ The app runs without Ollama — submitted incidents will show an analysis error 
 
 ---
 
-## AI Component (Key Differentiator)
+## AI Component
 
 ElderShield uses **Ollama** running locally to analyze scam reports — no external API keys or internet connection required. The default model is `qwen2.5vl:7b`, a vision-capable model that can analyze both text descriptions and uploaded screenshots.
 
