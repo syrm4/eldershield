@@ -1,17 +1,45 @@
-# ElderShield
-AI-Powered Scam Detection & Awareness Platform
+# ElderShield 🛡️
+
+> AI-Powered Scam Detection & Awareness Platform
+
+![PHP](https://img.shields.io/badge/PHP-8.1+-777BB4?logo=php&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
+![Ollama](https://img.shields.io/badge/AI-Ollama%20Local-black)
+![License](https://img.shields.io/badge/License-MIT-green)
+![Status](https://img.shields.io/badge/Status-Prototype-orange)
 
 ElderShield is a cybersecurity-focused web application designed to protect elderly users from scams such as phishing, impersonation fraud, tech support scams, romance scams, grandparent scams, and investment fraud. Seniors submit screenshots or descriptions of suspicious messages, calls, or emails. A local AI model (Ollama) analyzes the content and returns a plain-language risk assessment. Caregivers and admins are automatically notified of high-risk reports and can monitor, review, and intervene through a dedicated dashboard.
+
+---
+
+## Table of Contents
+
+- [Demo](#demo)
+- [Project Overview](#project-overview)
+- [Goals](#goals)
+- [Local Setup](#local-setup)
+- [AI Component](#ai-component-key-differentiator)
+- [Database Schema](#database-schema)
+- [CRUD Functionality](#crud-functionality)
+- [Subscription & Billing](#subscription--billing)
+- [Dashboard Analytics](#dashboard-analytics)
+- [Notification System](#notification-system)
+- [Cybersecurity & Privacy](#cybersecurity--privacy)
+- [Technology Stack](#technology-stack)
+- [Author](#author)
+- [License](#license)
+
+---
+
+## Demo
+
+[![▶ Watch the Demo](https://img.shields.io/badge/YouTube-Watch%20Demo-red?logo=youtube)](https://youtu.be/zMp5k4DBVxo)
 
 ---
 
 ## Project Overview
 
 ElderShield uses a three-role system with a role-aware interface for each user type.
-
-## Video Demo
-
-https://youtu.be/zMp5k4DBVxo
 
 ### Elder Interface
 A simplified, accessibility-first interface designed for seniors.
