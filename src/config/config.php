@@ -3,17 +3,19 @@
 // config/config.php  —  App-wide settings
 // ============================================================
 //
-// APP_URL path guide:
-//   WAMP (Windows)  → place project in C:\wamp64\www\eldershield\
-//                     URL: http://localhost/eldershield/src
-//   MAMP (Mac)      → place project in /Applications/MAMP/htdocs/eldershield/
-//                     URL: http://localhost/eldershield/src
-//                     (If using MAMP standard port 8888:
-//                      http://localhost:8888/eldershield/src)
-// ============================================================
+// ── APP_URL — Uncomment the line that matches your setup ──────
+//
+//   WAMP (Windows)       → project in C:\wamp64\www\eldershield\
+//   MAMP Pro (Mac)        → project in /Applications/MAMP/htdocs/eldershield/
+//   MAMP Standard (Mac)  → same folder, but Apache runs on port 8888
+//
+// ── Uncomment ONE of the lines below: ────────────────────────
+// define('APP_URL', 'http://localhost/eldershield/src');       // WAMP or MAMP Pro
+// define('APP_URL', 'http://localhost:8888/eldershield/src');  // MAMP Standard
+// ─────────────────────────────────────────────────────────────
 
+define('APP_URL',  'http://localhost/eldershield/src'); // ← Change this if needed
 define('APP_NAME', 'ElderShield');
-define('APP_URL',  'http://localhost/eldershield/src');
 define('APP_ROOT', __DIR__ . '/..');
 
 // ── Timezone ──────────────────────────────────────────────────

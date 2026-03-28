@@ -5,13 +5,22 @@
 --
 -- ⚠️  IMPORTANT SETUP INSTRUCTIONS — READ BEFORE IMPORTING
 -- ============================================================
+-- Minimum requirements:
+--     MySQL 5.7.8+ or MariaDB 10.2.7+
+--     (Required for JSON column type used in the analysis table)
+--     MAMP ships with MySQL 5.7+ by default from v4 onwards.
+--     WAMP ships with MySQL 5.7+ by default from v3.1 onwards.
+--     Check your version in phpMyAdmin: Home → Server → Variables → version
+--
 -- Step 1: Import this file into MySQL to create the schema.
 --         In phpMyAdmin: Import > choose this file > Go
 --         In terminal:   mysql -u root -p < eldershield.sql
 --
 -- Step 2: Optionally run seed.php to populate full demo data
 --         (incidents, caregiver links, analytics data).
---         In browser: http://localhost:8888/eldershield/src/database/seed.php
+--         WAMP:          http://localhost/eldershield/src/database/seed.php
+--         MAMP Standard: http://localhost:8888/eldershield/src/database/seed.php
+--         MAMP Pro:      http://localhost/eldershield/src/database/seed.php
 --
 -- Default login credentials (three starter accounts below):
 --     Admin:     admin@eldershield.com  / password: password123
@@ -56,12 +65,13 @@ CREATE TABLE incidents (
 -- ============================================================
 -- ANALYSIS
 -- One row per incident. Populated by background Ollama worker.
+-- Requires MySQL 5.7.8+ or MariaDB 10.2.7+ for JSON column type.
 -- ============================================================
 CREATE TABLE analysis (
     incident_id        INT          NOT NULL PRIMARY KEY, -- 1-to-1 with incidents
     scam_probability   TINYINT      NOT NULL DEFAULT 0,   -- 0-100, TINYINT saves space
     scam_category      VARCHAR(50)  DEFAULT NULL,
-    manipulation_tactics JSON       DEFAULT NULL,
+    manipulation_tactics JSON       DEFAULT NULL,         -- requires MySQL 5.7.8+
     explanation_simple TEXT         DEFAULT NULL,
     recommended_action TEXT         DEFAULT NULL,
     created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
