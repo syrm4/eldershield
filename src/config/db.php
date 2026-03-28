@@ -3,16 +3,11 @@
 // config/db.php  —  PDO database connection
 // ============================================================
 //
-// MySQL port guide:
-//   WAMP (Windows)       → 3306
-//   MAMP Pro (Mac)       → 3306
-//   MAMP standard (Mac)  → 8889
-//
-// Change DB_PORT below to match your local environment.
+// DB_PORT is defined in config/config.php alongside APP_URL
+// so both local-environment settings can be changed in one place.
 // ============================================================
 
 define('DB_HOST',    'localhost');
-define('DB_PORT',    '3306');      // See port guide above
 define('DB_NAME',    'eldershield');
 define('DB_USER',    'root');
 define('DB_PASS',    'root');      // MAMP default — change for production

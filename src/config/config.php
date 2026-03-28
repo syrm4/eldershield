@@ -3,18 +3,20 @@
 // config/config.php  —  App-wide settings
 // ============================================================
 //
-// ── APP_URL — Uncomment the line that matches your setup ──────
+// ── Local environment ─────────────────────────────────────────
+// Change BOTH values below to match your setup. They must stay
+// in sync — that's why they live next to each other.
 //
-//   WAMP (Windows)       → project in C:\wamp64\www\eldershield\
-//   MAMP Pro (Mac)        → project in /Applications/MAMP/htdocs/eldershield/
-//   MAMP Standard (Mac)  → same folder, but Apache runs on port 8888
-//
-// ── Uncomment ONE of the lines below: ────────────────────────
-// define('APP_URL', 'http://localhost/eldershield/src');       // WAMP or MAMP Pro
-// define('APP_URL', 'http://localhost:8888/eldershield/src');  // MAMP Standard
+//   Setup            APP_URL                                DB_PORT
+//   ──────────────────────────────────────────────────────────────
+//   WAMP (Windows)   http://localhost/eldershield/src        3306
+//   MAMP Pro (Mac)   http://localhost/eldershield/src        3306
+//   MAMP Std (Mac)   http://localhost:8888/eldershield/src   8889
 // ─────────────────────────────────────────────────────────────
 
-define('APP_URL',  'http://localhost/eldershield/src'); // ← Change this if needed
+define('APP_URL',  'http://localhost/eldershield/src'); // ← Change if needed
+define('DB_PORT',  '3306');                             // ← Change if needed (MAMP Std → 8889)
+
 define('APP_NAME', 'ElderShield');
 define('APP_ROOT', __DIR__ . '/..');
 
