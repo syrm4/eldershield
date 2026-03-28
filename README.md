@@ -20,12 +20,10 @@ ElderShield protects elderly users from scams — phishing, impersonation, tech 
 - [Local Setup](#local-setup)
 - [AI Component](#ai-component)
 - [Database Schema](#database-schema)
-- [CRUD Functionality](#crud-functionality)
 - [Subscription & Billing](#subscription--billing)
-- [Dashboard Analytics](#dashboard-analytics)
-- [Notification System](#notification-system)
 - [Cybersecurity & Privacy](#cybersecurity--privacy)
 - [Technology Stack](#technology-stack)
+- [Documentation](#documentation)
 - [Author](#author)
 - [License](#license)
 
@@ -179,40 +177,6 @@ Built on **MySQL** with 5 tables in a fully relational design.
 
 ---
 
-## CRUD Functionality
-
-### Users
-- **Create** — register as elder or caregiver; admin creates admin accounts
-- **Read** — role-aware dashboard, profile page, admin user list
-- **Update** — profile info, password (min 7 characters), role changes (admin only), plan changes
-- **Delete/Deactivate** — admin can deactivate or permanently delete accounts
-
-### Incidents
-- **Create** — elder submits text + optional screenshot
-- **Read** — elder sees own history; caregiver sees linked elders'; admin sees all
-- **Update** — elder can edit and re-submit; admin can edit analysis fields or reprompt AI
-- **Delete** — elder can delete own reports; admin can delete any
-
-### Analysis
-- **Create** — generated automatically by Ollama after incident submission
-- **Read** — displayed on incident detail page with risk gauge, tactics, explanation
-- **Update** — admin manual edit or AI re-run (reprompt); both use upsert
-- **Delete** — cleared when incident is deleted (cascade) or admin clears for elder re-submission
-
-### Notifications
-- **Create** — auto-generated on medium/high risk; admin broadcast; admin targeted message; billing events
-- **Read** — notification inbox (user sees own; admin sees all)
-- **Update** — mark read/unread via AJAX; admin edits propagate to all broadcast copies
-- **Delete** — user deletes own; admin can delete any or clear all
-
-### Account Links
-- **Create** — caregiver sends link request by elder email
-- **Read** — admin sees all relationships; caregiver sees own; elder sees linked caregivers on profile
-- **Update** — approve (pending → active), revoke (delete), reactivate
-- **Delete** — hard delete on revoke (allows re-linking)
-
----
-
 ## Subscription & Billing
 
 | Plan | Price | Elder Link Limit |
@@ -225,33 +189,6 @@ Built on **MySQL** with 5 tables in a fully relational design.
 - Payment processing simulated at 95% success rate for demo purposes
 - Failed payments generate a caregiver notification and can be retried from the billing page
 - Admins can upgrade, downgrade, or pause any caregiver's plan from `admin_subscriptions.php`
-
----
-
-## Dashboard Analytics
-
-### Caregiver (7-Day View)
-- High-risk count this week
-- Stacked bar chart — daily incidents broken down by risk level (high / medium / low)
-- Horizontal bar chart — top scam categories among linked elders this week
-
-### Admin (30-Day View)
-- Total users, total incidents, all-time high-risk count
-- This-month incident count with % change vs last month
-- 30-day stacked bar chart — daily volume across all users
-- Risk distribution donut chart — percentage breakdown of all analyzed incidents
-- Top scam categories horizontal bar chart for the past 30 days
-
----
-
-## Notification System
-
-- **Auto-alerts** — triggered when AI analysis returns ≥40% (medium) or ≥70% (high); sent to linked caregivers and all admins
-- **Broadcast** — admin sends a message to every active user at once
-- **Targeted** — admin sends a private message to one specific user selected from a dropdown
-- **Edit propagation** — editing a broadcast notification updates all recipient copies simultaneously
-- **Billing notifications** — sent automatically on invoice success or failure
-- **Read state** — mark read/unread via AJAX without page reload
 
 ---
 
@@ -279,6 +216,14 @@ Built on **MySQL** with 5 tables in a fully relational design.
 | AI / NLP | Ollama (local) — default model: `qwen3-vl:8b` |
 | Web Server | Apache via MAMP or XAMPP |
 | Security | bcrypt · CSRF tokens · PDO · session hardening · CSP headers |
+
+---
+
+## Documentation
+
+- [CRUD Reference](docs/CRUD.md)
+- [Dashboard Analytics](docs/ANALYTICS.md)
+- [Notification System](docs/NOTIFICATIONS.md)
 
 ---
 
