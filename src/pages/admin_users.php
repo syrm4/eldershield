@@ -131,7 +131,7 @@ if ($user['role'] === 'admin') {
     $billingOverview = [];
 }
 
-$pageTitle = 'User Management';
+$pageTitle = ($user['role'] === 'admin') ? 'User Management' : 'Manage My Elders';
 include __DIR__ . '/../includes/header.php';
 ?>
 
