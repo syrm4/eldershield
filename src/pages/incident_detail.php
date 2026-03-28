@@ -86,18 +86,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 array_map('trim', explode(',', $tacticsRaw))
             ));
 
-            // Upsert — update if exists, insert if not
+            // Upsert — update if exists, insert if not.
+            // ai_error is explicitly set to NULL: a human override clears any prior failure flag.
             $db->prepare(
                 'INSERT INTO analysis
                     (incident_id, scam_probability, scam_category, manipulation_tactics,
-                     explanation_simple, recommended_action)
-                 VALUES (?, ?, ?, ?, ?, ?)
+                     explanation_simple, recommended_action, ai_error)
+                 VALUES (?, ?, ?, ?, ?, ?, NULL)
                  ON DUPLICATE KEY UPDATE
                     scam_probability    = VALUES(scam_probability),
                     scam_category       = VALUES(scam_category),
                     manipulation_tactics = VALUES(manipulation_tactics),
                     explanation_simple  = VALUES(explanation_simple),
-                    recommended_action  = VALUES(recommended_action)'
+                    recommended_action  = VALUES(recommended_action),
+                    ai_error            = NULL'
             )->execute([
                 $incidentId, $probability, $category,
                 json_encode($tactics), $explanation, $recommended
@@ -187,8 +189,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Re-fetch after any updates
-$incident      = getIncidentById($incidentId);
-$analysisReady = ($incident['scam_probability'] !== null);
+$incident = getIncidentById($incidentId);
+
+// $analysisReady is true only when a successful AI result exists.
+// A failed analysis (ai_error set) leaves scam_probability at 0 but must
+// NOT render as "Low Risk 0%" — the error banner is shown instead.
+$aiError       = $incident['ai_error'] ?? null;
+$analysisReady = ($incident['scam_probability'] !== null && empty($aiError));
 $probability   = (float)($incident['scam_probability'] ?? 0);
 $riskLevel     = getRiskLevel($probability);
 $tactics       = json_decode($incident['manipulation_tactics'] ?? '[]', true) ?: [];
@@ -214,7 +221,7 @@ include __DIR__ . '/../includes/header.php';
 
     <div class="detail-header">
         <a href="<?= APP_URL ?>/pages/<?= $user['role'] === 'elder' ? 'my_incidents' : 'incidents' ?>.php"
-           class="back-link">← Back to Reports</a>
+           class="back-link">&larr; Back to Reports</a>
         <h1>Scam Report #<?= $incidentId ?></h1>
         <div class="detail-meta">
             <span>Submitted by <strong><?= e($ownerName) ?></strong></span>
@@ -232,6 +239,21 @@ include __DIR__ . '/../includes/header.php';
         <div class="alert alert-danger">
             <?php foreach ($errors as $err): ?><p><?= e($err) ?></p><?php endforeach; ?>
         </div>
+    <?php endif; ?>
+
+    <?php if ($aiError): ?>
+    <!-- ── AI FAILURE WARNING ───────────────────────────────── -->
+    <div class="alert alert-warning">
+        <strong>⚠️ AI analysis could not complete.</strong>
+        Make sure Ollama is running and the model
+        <code><?= e(OLLAMA_MODEL) ?></code> is pulled
+        (<code>ollama pull <?= e(OLLAMA_MODEL) ?></code>).
+        <?php if ($user['role'] === 'admin'): ?>
+            Once Ollama is ready, use <strong>Reprompt AI</strong> below to retry.
+        <?php else: ?>
+            A caregiver or admin has been notified and can retry the analysis.
+        <?php endif; ?>
+    </div>
     <?php endif; ?>
 
     <?php if ($analysisReady): ?>
@@ -270,11 +292,12 @@ include __DIR__ . '/../includes/header.php';
         </div>
     </div>
 
-    <?php else: ?>
+    <?php elseif (!$aiError): ?>
+    <!-- Only show the spinner when analysis is genuinely in progress (no error). -->
     <div class="alert alert-info analyzing-banner">
         <span class="analyzing-spinner">⏳</span>
         <strong>Analysis in progress...</strong>
-        This page will update automatically — no need to do anything.
+        This page will update automatically &mdash; no need to do anything.
     </div>
     <?php endif; ?>
 
@@ -284,9 +307,9 @@ include __DIR__ . '/../includes/header.php';
     <?php if ($user['role'] === 'admin'): ?>
     <div class="card admin-analysis-card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1.25rem;">
-            <h2>🔧 Admin — Analysis Controls</h2>
+            <h2>🔧 Admin &mdash; Analysis Controls</h2>
             <div style="display:flex; gap:.6rem; flex-wrap:wrap;">
-                <?php if (!in_array($incident['status'], ['pending', 'cleared'])): ?>
+                <?php if (!in_array($incident['status'], ['pending', 'cleared']) || $aiError): ?>
                 <button class="btn btn-sm btn-secondary" onclick="toggleAdminEdit()">
                     ✏️ Edit Analysis
                 </button>
@@ -336,7 +359,7 @@ include __DIR__ . '/../includes/header.php';
                 <div class="form-group">
                     <label for="a_tactics">Manipulation Tactics
                         <small style="font-weight:400; color:var(--color-muted);">
-                            — comma separated, e.g. urgency, fear_based_language
+                            &mdash; comma separated, e.g. urgency, fear_based_language
                         </small>
                     </label>
                     <input type="text" id="a_tactics" name="manipulation_tactics"
@@ -367,9 +390,9 @@ include __DIR__ . '/../includes/header.php';
 
         <?php if ($analysisReady): ?>
         <p style="font-size:.875rem; color:var(--color-muted); margin-top:<?= $incident['status'] === 'pending' ? '0' : '.75rem' ?>;">
-            <strong>Edit Analysis</strong> — overwrite the AI result with your own values, marked as reviewed.<br>
-            <strong>Reprompt AI</strong> — discard current result and re-run Ollama on the original submission.<br>
-            <strong>Clear Analysis</strong> — remove the result entirely so the elder sees a blank state and can edit &amp; re-submit.
+            <strong>Edit Analysis</strong> &mdash; overwrite the AI result with your own values, marked as reviewed.<br>
+            <strong>Reprompt AI</strong> &mdash; discard current result and re-run Ollama on the original submission.<br>
+            <strong>Clear Analysis</strong> &mdash; remove the result entirely so the elder sees a blank state and can edit &amp; re-submit.
         </p>
         <?php else: ?>
         <p style="font-size:.875rem; color:var(--color-muted);">
@@ -437,7 +460,7 @@ include __DIR__ . '/../includes/header.php';
                                accept="image/*" class="upload-input">
                         <div class="upload-label">
                             <span>Click to upload or drag &amp; drop</span>
-                            <small>JPG, PNG, GIF, WEBP · Max <?= (int)UPLOAD_MAX_MB ?>MB</small>
+                            <small>JPG, PNG, GIF, WEBP &middot; Max <?= (int)UPLOAD_MAX_MB ?>MB</small>
                         </div>
                         <div id="editImagePreview" class="image-preview hidden"></div>
                     </div>
@@ -452,7 +475,7 @@ include __DIR__ . '/../includes/header.php';
         </div>
         <?php endif; ?>
 
-        <?php if ($isOwner && $incident['status'] === 'pending'): ?>
+        <?php if ($isOwner && $incident['status'] === 'pending' && !$aiError): ?>
         <p style="margin-top:.75rem; font-size:.875rem; color:var(--color-muted);">
             ⏳ Analysis is running. You can edit your report once it finishes.
         </p>
@@ -507,7 +530,11 @@ include __DIR__ . '/../includes/header.php';
 
 </div>
 
-<?php if (!$analysisReady && $incident['status'] === 'pending'): ?>
+<?php
+// Auto-refresh only when analysis is genuinely in progress.
+// Do NOT refresh when ai_error is set — Ollama being down won't fix itself on reload.
+if (!$analysisReady && $incident['status'] === 'pending' && !$aiError):
+?>
 <script>setTimeout(function() { window.location.reload(); }, 5000);</script>
 <?php endif; ?>
 

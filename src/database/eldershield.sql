@@ -18,9 +18,7 @@
 --
 -- Step 2: Optionally run seed.php to populate full demo data
 --         (incidents, caregiver links, analytics data).
---         WAMP:          http://localhost/eldershield/src/database/seed.php
---         MAMP Standard: http://localhost:8888/eldershield/src/database/seed.php
---         MAMP Pro:      http://localhost/eldershield/src/database/seed.php
+--         Run from CLI: php seed.php
 --
 -- Default login credentials (three starter accounts below):
 --     Admin:     admin@eldershield.com  / password: password123
@@ -66,6 +64,8 @@ CREATE TABLE incidents (
 -- ANALYSIS
 -- One row per incident. Populated by background Ollama worker.
 -- Requires MySQL 5.7.8+ or MariaDB 10.2.7+ for JSON column type.
+-- ai_error is NULL on success; populated with a short reason string
+-- when Ollama is unreachable or returns an unreadable response.
 -- ============================================================
 CREATE TABLE analysis (
     incident_id        INT          NOT NULL PRIMARY KEY, -- 1-to-1 with incidents
@@ -74,6 +74,7 @@ CREATE TABLE analysis (
     manipulation_tactics JSON       DEFAULT NULL,         -- requires MySQL 5.7.8+
     explanation_simple TEXT         DEFAULT NULL,
     recommended_action TEXT         DEFAULT NULL,
+    ai_error           VARCHAR(500) DEFAULT NULL,         -- NULL = success; set on Ollama failure
     created_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (incident_id) REFERENCES incidents(incident_id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
@@ -126,7 +127,7 @@ CREATE TABLE invoices (
 -- ============================================================
 -- SEED DATA — Three starter accounts (password: password123)
 -- Real bcrypt hashes — login works immediately after import.
--- Run database/seed.php to add full demo data.
+-- Run database/seed.php via CLI to add full demo data.
 -- ============================================================
 INSERT INTO users (full_name, email, password_hash, role, plan) VALUES
     ('Admin User',      'admin@eldershield.com', '$2y$12$/4HX6Nca5rY5pFPFsvl7e.DySLjawiG4yQeqZ5PTHpvfEbJG.DaxS', 'admin',     'premium'),

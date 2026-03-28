@@ -63,26 +63,31 @@ function createIncident(int $userId, string $content, ?string $imagePath = null)
 }
 
 /**
- * Upsert AI analysis results for an incident and set its status to 'analyzed'.
- * Uses ON DUPLICATE KEY UPDATE so re-running analysis overwrites the previous result.
+ * Upsert AI analysis results for an incident.
+ * On success (no error), advances incident status to 'analyzed'.
+ * On failure (ai_error set), leaves status as 'pending' so the incident
+ * remains visually distinct and retryable via Reprompt AI.
  *
  * @param int   $incidentId The ID of the incident being analyzed.
  * @param array $result     Structured analysis array from analyzeIncident().
  * @return void
  */
 function saveAnalysis(int $incidentId, array $result): void {
-    $db = getDB();
+    $db       = getDB();
+    $hasError = !empty($result['error']);
+
     $db->prepare(
         'INSERT INTO analysis
             (incident_id, scam_probability, scam_category, manipulation_tactics,
-             explanation_simple, recommended_action)
-         VALUES (?, ?, ?, ?, ?, ?)
+             explanation_simple, recommended_action, ai_error)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
-            scam_probability   = VALUES(scam_probability),
-            scam_category      = VALUES(scam_category),
+            scam_probability     = VALUES(scam_probability),
+            scam_category        = VALUES(scam_category),
             manipulation_tactics = VALUES(manipulation_tactics),
-            explanation_simple = VALUES(explanation_simple),
-            recommended_action = VALUES(recommended_action)'
+            explanation_simple   = VALUES(explanation_simple),
+            recommended_action   = VALUES(recommended_action),
+            ai_error             = VALUES(ai_error)'
     )->execute([
         $incidentId,
         $result['scam_probability'],
@@ -90,9 +95,16 @@ function saveAnalysis(int $incidentId, array $result): void {
         json_encode($result['manipulation_tactics']),
         $result['explanation_simple'],
         $result['recommended_action'],
+        $result['error'],  // null on success; short reason string on failure
     ]);
-    $db->prepare('UPDATE incidents SET status = "analyzed" WHERE incident_id = ?')
-       ->execute([$incidentId]);
+
+    // Only advance to 'analyzed' when the AI actually succeeded.
+    // Failures leave the incident as 'pending' so the UI shows a warning
+    // rather than a misleading "Low Risk 0%" badge.
+    if (!$hasError) {
+        $db->prepare('UPDATE incidents SET status = "analyzed" WHERE incident_id = ?')
+           ->execute([$incidentId]);
+    }
 }
 
 /**
@@ -104,7 +116,7 @@ function saveAnalysis(int $incidentId, array $result): void {
 function getIncidentById(int $incidentId): ?array {
     $stmt = getDB()->prepare(
         'SELECT i.*, a.scam_probability, a.scam_category, a.manipulation_tactics,
-                a.explanation_simple, a.recommended_action
+                a.explanation_simple, a.recommended_action, a.ai_error
          FROM incidents i
          LEFT JOIN analysis a ON i.incident_id = a.incident_id
          WHERE i.incident_id = ?'
