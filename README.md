@@ -208,7 +208,3 @@ Built on **MySQL** with 5 tables in a fully relational design.
 - Cameron Hubbard
 
 ---
-
-## License
-This project is an academic system prototype for IS 6465.  
-All rights reserved unless otherwise stated.
