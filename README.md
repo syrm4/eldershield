@@ -169,8 +169,6 @@ Built on **MySQL** with 5 tables in a fully relational design.
 
 ![ERD Diagram](docs/Latest_ERD.png)
 
-### Tables
-
 | Table | Purpose |
 |---|---|
 | `users` | All accounts — elders, caregivers, admins. Stores role, plan (free/premium), plan expiry, and active status |
