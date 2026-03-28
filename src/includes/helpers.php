@@ -10,6 +10,15 @@ require_once __DIR__ . '/../config/db.php';
 // IMAGE UPLOAD
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Validate and save an uploaded image file to the uploads directory.
+ * Checks MIME type, file size, and verifies the file is a real image
+ * using getimagesize() to defend against disguised uploads.
+ *
+ * @param array $file A single entry from the $_FILES superglobal.
+ * @return array ['success' => false, 'message' => string] on failure,
+ *               ['success' => true, 'path' => string, 'filename' => string] on success.
+ */
 function handleImageUpload(array $file): array {
     if ($file['error'] !== UPLOAD_ERR_OK) {
         return ['success' => false, 'message' => 'File upload failed.'];
@@ -37,6 +46,14 @@ function handleImageUpload(array $file): array {
 // INCIDENTS
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Insert a new incident record with status 'pending'.
+ *
+ * @param int         $userId    The ID of the elder submitting the report.
+ * @param string      $content   The text description of the suspicious message.
+ * @param string|null $imagePath Optional absolute path to an uploaded screenshot.
+ * @return int The auto-incremented incident_id of the new record.
+ */
 function createIncident(int $userId, string $content, ?string $imagePath = null): int {
     $db = getDB();
     $db->prepare(
@@ -45,7 +62,14 @@ function createIncident(int $userId, string $content, ?string $imagePath = null)
     return (int)$db->lastInsertId();
 }
 
-// analysis.incident_id is now the PK — INSERT, not INSERT with separate analysis_id
+/**
+ * Upsert AI analysis results for an incident and set its status to 'analyzed'.
+ * Uses ON DUPLICATE KEY UPDATE so re-running analysis overwrites the previous result.
+ *
+ * @param int   $incidentId The ID of the incident being analyzed.
+ * @param array $result     Structured analysis array from analyzeIncident().
+ * @return void
+ */
 function saveAnalysis(int $incidentId, array $result): void {
     $db = getDB();
     $db->prepare(
@@ -71,6 +95,12 @@ function saveAnalysis(int $incidentId, array $result): void {
        ->execute([$incidentId]);
 }
 
+/**
+ * Fetch a single incident by ID, including its analysis data via LEFT JOIN.
+ *
+ * @param int $incidentId The incident ID to look up.
+ * @return array|null The incident row with analysis columns, or null if not found.
+ */
 function getIncidentById(int $incidentId): ?array {
     $stmt = getDB()->prepare(
         'SELECT i.*, a.scam_probability, a.scam_category, a.manipulation_tactics,
@@ -83,6 +113,13 @@ function getIncidentById(int $incidentId): ?array {
     return $stmt->fetch() ?: null;
 }
 
+/**
+ * Fetch all incidents submitted by a specific user, ordered by most recent first.
+ *
+ * @param int $userId The user ID to filter by.
+ * @param int $limit  Maximum number of records to return. Defaults to 20.
+ * @return array Array of incident rows with basic analysis columns.
+ */
 function getIncidentsByUser(int $userId, int $limit = 20): array {
     $stmt = getDB()->prepare(
         'SELECT i.*, a.scam_probability, a.scam_category
@@ -95,6 +132,12 @@ function getIncidentsByUser(int $userId, int $limit = 20): array {
     return $stmt->fetchAll();
 }
 
+/**
+ * Fetch all incidents across all users, including submitter info. Intended for admin use.
+ *
+ * @param int $limit Maximum number of records to return. Defaults to 50.
+ * @return array Array of incident rows joined with user and analysis data.
+ */
 function getAllIncidents(int $limit = 50): array {
     $stmt = getDB()->prepare(
         'SELECT i.*, u.full_name, u.email, a.scam_probability, a.scam_category
@@ -107,6 +150,13 @@ function getAllIncidents(int $limit = 50): array {
     return $stmt->fetchAll();
 }
 
+/**
+ * Fetch incidents for all elders actively linked to a given caregiver.
+ *
+ * @param int $caregiverId The caregiver's user ID.
+ * @param int $limit       Maximum number of records to return. Defaults to 50.
+ * @return array Array of incident rows with elder name, email, and analysis data.
+ */
 function getIncidentsForCaregiver(int $caregiverId, int $limit = 50): array {
     $stmt = getDB()->prepare(
         'SELECT i.*, u.full_name, u.email, a.scam_probability, a.scam_category
@@ -121,6 +171,13 @@ function getIncidentsForCaregiver(int $caregiverId, int $limit = 50): array {
     return $stmt->fetchAll();
 }
 
+/**
+ * Update the status field of an incident. Silently ignores invalid status values.
+ *
+ * @param int    $incidentId The ID of the incident to update.
+ * @param string $status     One of: 'pending', 'analyzed', 'reviewed', 'dismissed'.
+ * @return void
+ */
 function updateIncidentStatus(int $incidentId, string $status): void {
     $allowed = ['pending','analyzed','reviewed','dismissed'];
     if (!in_array($status, $allowed, true)) return;
@@ -128,6 +185,15 @@ function updateIncidentStatus(int $incidentId, string $status): void {
            ->execute([$status, $incidentId]);
 }
 
+/**
+ * Delete an incident. Admins can delete any incident; other roles can only delete their own.
+ * Cascading foreign keys will also remove the associated analysis and notifications.
+ *
+ * @param int    $incidentId The ID of the incident to delete.
+ * @param int    $userId     The ID of the user requesting the deletion.
+ * @param string $role       The role of the requesting user ('admin' or other).
+ * @return bool True if a row was deleted, false if no matching incident was found.
+ */
 function deleteIncident(int $incidentId, int $userId, string $role): bool {
     $db = getDB();
     if ($role === 'admin') {
@@ -144,6 +210,15 @@ function deleteIncident(int $incidentId, int $userId, string $role): bool {
 // NOTIFICATIONS
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Insert a new in-app notification for a specific user.
+ *
+ * @param int         $recipientId The user ID of the notification recipient.
+ * @param string      $message     The notification message text.
+ * @param string      $type        Notification type: 'high_risk', 'medium_risk', 'info', or 'admin_action'.
+ * @param int|null    $incidentId  Optional incident ID to link the notification to.
+ * @return void
+ */
 function createNotification(int $recipientId, string $message, string $type = 'info', ?int $incidentId = null): void {
     getDB()->prepare(
         'INSERT INTO notifications (incident_id, recipient_user_id, message_text, notification_type)
@@ -151,6 +226,16 @@ function createNotification(int $recipientId, string $message, string $type = 'i
     )->execute([$incidentId, $recipientId, $message, $type]);
 }
 
+/**
+ * Send risk alert notifications to all caregivers linked to an elder and all active admins.
+ * Only called when scam probability meets or exceeds the RISK_MEDIUM threshold.
+ *
+ * @param int    $incidentId  The ID of the analyzed incident.
+ * @param int    $elderUserId The ID of the elder who submitted the report.
+ * @param int    $probability The scam probability score (0–100).
+ * @param string $category    The detected scam category string.
+ * @return void
+ */
 function notifyCaregivers(int $incidentId, int $elderUserId, int $probability, string $category): void {
     $db = getDB();
 
@@ -181,6 +266,12 @@ function notifyCaregivers(int $incidentId, int $elderUserId, int $probability, s
     }
 }
 
+/**
+ * Fetch the 50 most recent notifications for a user, including linked incident and elder name.
+ *
+ * @param int $userId The recipient user ID.
+ * @return array Array of notification rows with incident_content and elder_name columns.
+ */
 function getNotificationsForUser(int $userId): array {
     $stmt = getDB()->prepare(
         'SELECT n.*, i.content AS incident_content, u.full_name AS elder_name
@@ -194,6 +285,13 @@ function getNotificationsForUser(int $userId): array {
     return $stmt->fetchAll();
 }
 
+/**
+ * Mark a specific notification as read. Scoped to the recipient to prevent cross-user access.
+ *
+ * @param int $notificationId The ID of the notification to mark as read.
+ * @param int $userId         The ID of the user who owns the notification.
+ * @return void
+ */
 function markNotificationRead(int $notificationId, int $userId): void {
     getDB()->prepare(
         'UPDATE notifications SET is_read = 1
@@ -201,6 +299,12 @@ function markNotificationRead(int $notificationId, int $userId): void {
     )->execute([$notificationId, $userId]);
 }
 
+/**
+ * Count the number of unread notifications for a user.
+ *
+ * @param int $userId The user ID to count for.
+ * @return int Number of unread notifications.
+ */
 function countUnreadNotifications(int $userId): int {
     $stmt = getDB()->prepare(
         'SELECT COUNT(*) FROM notifications WHERE recipient_user_id = ? AND is_read = 0'
@@ -213,6 +317,16 @@ function countUnreadNotifications(int $userId): int {
 // ACCOUNT LINKS
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Create a pending caregiver-to-elder link request.
+ * Returns an error if the relationship already exists (duplicate key).
+ *
+ * @param int    $elderUserId      The ID of the elder being linked.
+ * @param int    $caregiverUserId  The ID of the caregiver requesting the link.
+ * @param string $relationshipType Reserved for future use. Currently unused in the query.
+ * @return array ['success' => true] on success,
+ *               ['success' => false, 'message' => string] if the link already exists.
+ */
 function linkCaregiverToElder(int $elderUserId, int $caregiverUserId, string $relationshipType = 'caregiver'): array {
     try {
         getDB()->prepare(
@@ -227,18 +341,35 @@ function linkCaregiverToElder(int $elderUserId, int $caregiverUserId, string $re
     }
 }
 
+/**
+ * Approve a pending caregiver-elder link, setting its status to 'active'.
+ *
+ * @param int $linkId The ID of the account_links record to approve.
+ * @return void
+ */
 function approveLink(int $linkId): void {
     getDB()->prepare('UPDATE account_links SET status = "active" WHERE link_id = ?')
            ->execute([$linkId]);
 }
 
+/**
+ * Hard-delete a caregiver-elder link. Uses hard delete rather than soft delete
+ * so the pair can be re-linked in the future without hitting the UNIQUE KEY constraint.
+ *
+ * @param int $linkId The ID of the account_links record to remove.
+ * @return void
+ */
 function revokeLink(int $linkId): void {
-    // Hard delete — soft delete (status=revoked) blocks re-linking due to UNIQUE KEY.
-    // Revoke history is no longer needed since billing proration was removed.
     getDB()->prepare('DELETE FROM account_links WHERE link_id = ?')
            ->execute([$linkId]);
 }
 
+/**
+ * Fetch all caregiver links for a given elder, including caregiver name and email.
+ *
+ * @param int $elderUserId The elder's user ID.
+ * @return array Array of account_links rows joined with caregiver user data.
+ */
 function getLinksForElder(int $elderUserId): array {
     $stmt = getDB()->prepare(
         'SELECT al.*, u.full_name, u.email FROM account_links al
@@ -249,6 +380,12 @@ function getLinksForElder(int $elderUserId): array {
     return $stmt->fetchAll();
 }
 
+/**
+ * Fetch all active elder links for a given caregiver, including elder name and email.
+ *
+ * @param int $caregiverId The caregiver's user ID.
+ * @return array Array of active account_links rows joined with elder user data.
+ */
 function getLinksForCaregiver(int $caregiverId): array {
     $stmt = getDB()->prepare(
         'SELECT al.*, u.full_name, u.email FROM account_links al
@@ -263,10 +400,22 @@ function getLinksForCaregiver(int $caregiverId): array {
 // UTILITY
 // ════════════════════════════════════════════════════════════
 
+/**
+ * Escape a string for safe HTML output. Shorthand for htmlspecialchars with ENT_QUOTES.
+ *
+ * @param string $val The raw string to escape.
+ * @return string HTML-safe string.
+ */
 function e(string $val): string {
     return htmlspecialchars($val, ENT_QUOTES, 'UTF-8');
 }
 
+/**
+ * Render a styled HTML risk badge for a given scam probability score.
+ *
+ * @param float $probability Scam probability from 0–100.
+ * @return string HTML span element with the appropriate badge class and percentage.
+ */
 function riskBadge(float $probability): string {
     $level = $probability >= RISK_HIGH ? 'high' : ($probability >= RISK_MEDIUM ? 'medium' : 'low');
     $map   = [
@@ -278,6 +427,13 @@ function riskBadge(float $probability): string {
     return "<span class=\"badge {$class}\">{$label} (" . round($probability) . "%)</span>";
 }
 
+/**
+ * Convert a stored datetime string to a human-readable relative time string.
+ * Returns a formatted date for timestamps older than 30 days.
+ *
+ * @param string $datetime A datetime string in any format accepted by PHP's DateTime.
+ * @return string Relative string such as '5m ago', '3h ago', '2d ago', or 'Jan 5, 2025'.
+ */
 function timeAgo(string $datetime): string {
     $tz   = new DateTimeZone(defined('APP_TIMEZONE') ? APP_TIMEZONE : date_default_timezone_get());
     $now  = new DateTime('now', $tz);
@@ -292,6 +448,12 @@ function timeAgo(string $datetime): string {
     return 'just now';
 }
 
+/**
+ * Format a snake_case scam category string into a human-readable title case label.
+ *
+ * @param string $category A category string such as 'romance_scam' or 'tech_support'.
+ * @return string Title-cased label such as 'Romance Scam' or 'Tech Support'.
+ */
 function formatCategory(string $category): string {
     return ucwords(str_replace('_', ' ', $category));
 }

@@ -5,15 +5,29 @@
 
 require_once __DIR__ . '/../config/config.php';
 
-// ── Helper: check if a function exists and is not disabled ───
-// Some hosts disable exec(), popen(), etc. in php.ini.
-// This check catches both missing functions and disabled ones.
+/**
+ * Check whether a PHP function exists and has not been disabled via php.ini.
+ * Some environments disable exec(), popen(), etc. in the disable_functions directive.
+ *
+ * @param string $funcName The function name to check.
+ * @return bool True if the function exists and is not disabled.
+ */
 function isFunctionAvailable(string $funcName): bool {
     if (!function_exists($funcName)) return false;
     $disabled = array_map('trim', explode(',', ini_get('disable_functions')));
     return !in_array($funcName, $disabled, true);
 }
 
+/**
+ * Send incident content to Ollama for synchronous scam analysis.
+ * Requires the curl PHP extension. Returns a default analysis on any failure.
+ *
+ * @param string      $text      The incident text submitted by the elder.
+ * @param string|null $imagePath Optional absolute path to an uploaded screenshot.
+ * @return array Structured analysis result with keys: scam_probability, scam_category,
+ *               manipulation_tactics, explanation_simple, recommended_action,
+ *               ai_raw_response, error.
+ */
 function analyzeIncident(string $text, ?string $imagePath = null): array {
 
     // Guard: curl must be loaded for Ollama communication
@@ -97,6 +111,16 @@ function analyzeIncident(string $text, ?string $imagePath = null): array {
     return parseAIResponse($rawText);
 }
 
+/**
+ * Dispatch Ollama analysis as a background process so the page responds immediately.
+ * Detects OS and uses the appropriate shell mechanism (popen on Windows, exec on Mac/Linux).
+ * Falls back to synchronous analysis if shell execution is disabled in php.ini.
+ *
+ * @param int         $incidentId The ID of the incident to analyze.
+ * @param string      $text       The incident text content.
+ * @param string|null $imagePath  Optional absolute path to an uploaded screenshot.
+ * @return void
+ */
 function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath = null): void {
 
     // ── Check if async shell execution is available ───────────
@@ -182,6 +206,13 @@ function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath 
     }
 }
 
+/**
+ * Parse and validate the raw text response from Ollama into a structured array.
+ * Strips markdown code fences if present and extracts the first valid JSON object.
+ *
+ * @param string $rawText The raw string returned by Ollama.
+ * @return array Structured analysis result, or a default analysis on parse failure.
+ */
 function parseAIResponse(string $rawText): array {
     $clean = preg_replace('/^```(?:json)?\s*|\s*```$/m', '', trim($rawText));
     $jsonStart = strpos($clean, '{');
@@ -211,6 +242,12 @@ function parseAIResponse(string $rawText): array {
     ];
 }
 
+/**
+ * Return a safe default analysis result when Ollama is unavailable or returns an error.
+ *
+ * @param string $reason A short description of why the analysis failed (logged internally).
+ * @return array A zeroed-out analysis array with the error field populated.
+ */
 function defaultAnalysis(string $reason = 'Unknown error'): array {
     return [
         'scam_probability'     => 0,
@@ -223,12 +260,24 @@ function defaultAnalysis(string $reason = 'Unknown error'): array {
     ];
 }
 
+/**
+ * Convert a numeric scam probability to a risk level string.
+ *
+ * @param int|float $probability Scam probability from 0–100.
+ * @return string 'high', 'medium', or 'low'.
+ */
 function getRiskLevel(int|float $probability): string {
     if ($probability >= RISK_HIGH)   return 'high';
     if ($probability >= RISK_MEDIUM) return 'medium';
     return 'low';
 }
 
+/**
+ * Convert a risk level string to a human-readable emoji label.
+ *
+ * @param string $level Risk level: 'high', 'medium', or 'low'.
+ * @return string Emoji-prefixed label string.
+ */
 function getRiskLabel(string $level): string {
     return match($level) {
         'high'   => '⚠️ High Risk',

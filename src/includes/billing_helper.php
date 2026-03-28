@@ -10,7 +10,13 @@ require_once __DIR__ . '/subscription_helper.php';
 
 const PREMIUM_MONTHLY_CENTS = 999; // $9.99
 
-// ── Billing summary for a caregiver ──────────────────────────
+/**
+ * Return a billing summary for a caregiver including their active elder count,
+ * current plan, and monthly charge amount.
+ *
+ * @param int $caregiverId The caregiver's user ID.
+ * @return array Keys: active_elders (int), monthly_cents (int), monthly_fmt (string), plan (string).
+ */
 function getCaregiverBillingSummary(int $caregiverId): array {
     $db   = getDB();
     $stmt = $db->prepare(
@@ -31,7 +37,13 @@ function getCaregiverBillingSummary(int $caregiverId): array {
     ];
 }
 
-// ── Check for failed invoices (restricts caregiver access) ───
+/**
+ * Check whether a caregiver's account access should be restricted due to a failed invoice.
+ * Returns false on database error to avoid incorrectly blocking access.
+ *
+ * @param int $caregiverId The caregiver's user ID.
+ * @return bool True if one or more failed invoices exist for this caregiver.
+ */
 function caregiverAccessRestricted(int $caregiverId): bool {
     try {
         $stmt = getDB()->prepare(
@@ -44,7 +56,12 @@ function caregiverAccessRestricted(int $caregiverId): bool {
     }
 }
 
-// ── Get most recent failed invoice ───────────────────────────
+/**
+ * Retrieve the most recent failed invoice for a caregiver.
+ *
+ * @param int $caregiverId The caregiver's user ID.
+ * @return array|null The invoice row, or null if no failed invoice exists.
+ */
 function getFailedInvoice(int $caregiverId): ?array {
     try {
         $stmt = getDB()->prepare(
@@ -58,7 +75,14 @@ function getFailedInvoice(int $caregiverId): ?array {
     }
 }
 
-// ── Generate monthly invoices for all premium caregivers ──────
+/**
+ * Generate pending invoices for all active premium caregivers for a given billing month.
+ * Skips caregivers who already have an invoice for that month.
+ * Immediately calls simulatePayment() on each new invoice.
+ *
+ * @param string $billingMonth Billing period in Y-m-01 format (e.g. '2025-03-01').
+ * @return array ['created' => int, 'skipped' => int] or ['error' => string] on invalid input.
+ */
 function generateMonthlyInvoices(string $billingMonth): array {
     $db   = getDB();
     $date = DateTimeImmutable::createFromFormat('Y-m-d', $billingMonth);
@@ -95,7 +119,15 @@ function generateMonthlyInvoices(string $billingMonth): array {
     return ['created' => $created, 'skipped' => $skipped];
 }
 
-// ── Simulate payment (95% success for demo) ──────────────────
+/**
+ * Simulate payment processing for a single invoice at a 95% success rate.
+ * Updates the invoice status to 'paid' or 'failed' and sends a billing notification.
+ * Skips processing if the invoice is already paid.
+ *
+ * @param int $invoiceId    The ID of the invoice to process.
+ * @param int $caregiverId  The ID of the caregiver being billed.
+ * @return bool True if payment succeeded, false if it failed or the invoice was not found.
+ */
 function simulatePayment(int $invoiceId, int $caregiverId): bool {
     $db   = getDB();
     $stmt = $db->prepare(
@@ -124,7 +156,14 @@ function simulatePayment(int $invoiceId, int $caregiverId): bool {
     return $success;
 }
 
-// ── Retry a failed payment ────────────────────────────────────
+/**
+ * Retry a previously failed invoice payment by calling simulatePayment() again.
+ * Returns false if the invoice does not exist or is not in 'failed' status.
+ *
+ * @param int $invoiceId   The ID of the failed invoice to retry.
+ * @param int $caregiverId The ID of the caregiver who owns the invoice.
+ * @return bool True if the retry payment succeeded, false otherwise.
+ */
 function retryPayment(int $invoiceId, int $caregiverId): bool {
     $stmt = getDB()->prepare(
         'SELECT invoice_id FROM invoices
@@ -135,7 +174,13 @@ function retryPayment(int $invoiceId, int $caregiverId): bool {
     return simulatePayment($invoiceId, $caregiverId);
 }
 
-// ── Invoice history for a caregiver ──────────────────────────
+/**
+ * Fetch invoice history for a caregiver, ordered by most recent billing month first.
+ *
+ * @param int $caregiverId The caregiver's user ID.
+ * @param int $limit       Maximum number of invoices to return. Defaults to 24 (two years).
+ * @return array Array of invoice rows, or empty array on database error.
+ */
 function getInvoiceHistory(int $caregiverId, int $limit = 24): array {
     try {
         $stmt = getDB()->prepare(
@@ -149,7 +194,12 @@ function getInvoiceHistory(int $caregiverId, int $limit = 24): array {
     }
 }
 
-// ── Admin: all invoices ───────────────────────────────────────
+/**
+ * Fetch all invoices across all caregivers with caregiver name and email. Admin use only.
+ *
+ * @param int $limit Maximum number of invoices to return. Defaults to 100.
+ * @return array Array of invoice rows joined with caregiver user data.
+ */
 function getAllInvoicesAdmin(int $limit = 100): array {
     return getDB()->query(
         'SELECT i.*, u.full_name AS caregiver_name, u.email AS caregiver_email
@@ -160,7 +210,12 @@ function getAllInvoicesAdmin(int $limit = 100): array {
     )->fetchAll();
 }
 
-// ── Admin: billing overview ───────────────────────────────────
+/**
+ * Return a billing overview of all active caregivers with their plan, link count,
+ * last billing month, and most recent invoice status. Admin use only.
+ *
+ * @return array Array of rows with caregiver details and billing summary columns.
+ */
 function getAdminBillingOverview(): array {
     return getDB()->query(
         'SELECT u.user_id, u.full_name, u.email, u.plan,
@@ -179,7 +234,14 @@ function getAdminBillingOverview(): array {
     )->fetchAll();
 }
 
-// ── Send billing notification ─────────────────────────────────
+/**
+ * Send an in-app billing notification to a caregiver for a payment success or failure event.
+ *
+ * @param int    $caregiverId The ID of the caregiver to notify.
+ * @param int    $invoiceId   The ID of the invoice the notification relates to.
+ * @param string $type        Event type: 'billing_success' or 'billing_failed'.
+ * @return void
+ */
 function sendBillingNotification(int $caregiverId, int $invoiceId, string $type): void {
     $db  = getDB();
     $inv = $db->prepare('SELECT * FROM invoices WHERE invoice_id = ?');
@@ -201,11 +263,22 @@ function sendBillingNotification(int $caregiverId, int $invoiceId, string $type)
     )->execute([$caregiverId, $message, 'admin_action']);
 }
 
-// ── Formatting ────────────────────────────────────────────────
+/**
+ * Format a cent integer as a human-readable dollar string.
+ *
+ * @param int $cents Amount in cents (e.g. 999).
+ * @return string Formatted string (e.g. '$9.99').
+ */
 function formatCents(int $cents): string {
     return '$' . number_format($cents / 100, 2);
 }
 
+/**
+ * Format a Y-m-d billing date as a human-readable month and year string.
+ *
+ * @param string $date A date string in Y-m-d format (e.g. '2025-03-01').
+ * @return string Formatted string (e.g. 'March 2025').
+ */
 function formatBillingMonth(string $date): string {
     return date('F Y', strtotime($date));
 }

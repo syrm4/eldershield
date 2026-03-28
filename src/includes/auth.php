@@ -6,12 +6,21 @@
 require_once __DIR__ . '/../config/config.php';
 require_once __DIR__ . '/../config/db.php';
 
-// ── Check if logged in ────────────────────────────────────────
+/**
+ * Check whether a user is currently logged in via session.
+ *
+ * @return bool True if a valid user_id exists in the session.
+ */
 function isLoggedIn(): bool {
     return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
 }
 
-// ── Require login, redirect if not ───────────────────────────
+/**
+ * Enforce authentication. Redirects to login page if the user is not logged in.
+ *
+ * @param string $redirect Path relative to APP_URL to redirect to. Defaults to login page.
+ * @return void
+ */
 function requireLogin(string $redirect = '/pages/login.php'): void {
     if (!isLoggedIn()) {
         header('Location: ' . APP_URL . $redirect);
@@ -19,8 +28,13 @@ function requireLogin(string $redirect = '/pages/login.php'): void {
     }
 }
 
-// ── Require specific role ─────────────────────────────────────
-// Redirects to unauthorized.php (403 page) if role does not match
+/**
+ * Enforce role-based access control. Redirects to the 403 unauthorized page
+ * if the current user's role is not in the allowed list.
+ *
+ * @param string|array $roles A single role string or array of permitted roles.
+ * @return void
+ */
 function requireRole(string|array $roles): void {
     requireLogin();
     $roles = (array)$roles;
@@ -30,7 +44,11 @@ function requireRole(string|array $roles): void {
     }
 }
 
-// ── Get current user from session ────────────────────────────
+/**
+ * Return the current user's data from the session.
+ *
+ * @return array Associative array with keys: user_id, full_name, email, role.
+ */
 function currentUser(): array {
     return [
         'user_id'   => $_SESSION['user_id']   ?? null,
@@ -40,7 +58,15 @@ function currentUser(): array {
     ];
 }
 
-// ── Login user (validate credentials, set session) ───────────
+/**
+ * Validate credentials and start an authenticated session.
+ * Regenerates the session ID on success to prevent session fixation.
+ *
+ * @param string $email    The user's email address.
+ * @param string $password The plaintext password to verify against the stored hash.
+ * @return array ['success' => bool, 'message' => string] on failure,
+ *               ['success' => true, 'role' => string] on success.
+ */
 function loginUser(string $email, string $password): array {
     $db   = getDB();
     $stmt = $db->prepare('SELECT * FROM users WHERE email = ? AND is_active = 1 LIMIT 1');
@@ -62,7 +88,17 @@ function loginUser(string $email, string $password): array {
     return ['success' => true, 'role' => $user['role']];
 }
 
-// ── Register new user ─────────────────────────────────────────
+/**
+ * Register a new user account with a bcrypt-hashed password.
+ * Invalid roles are silently coerced to 'elder'.
+ *
+ * @param string $fullName The user's display name.
+ * @param string $email    The user's email address (must be unique).
+ * @param string $password The plaintext password to hash and store.
+ * @param string $role     Account role: 'elder', 'caregiver', or 'admin'. Defaults to 'elder'.
+ * @return array ['success' => bool, 'message' => string] on failure,
+ *               ['success' => true, 'user_id' => int] on success.
+ */
 function registerUser(string $fullName, string $email, string $password, string $role = 'elder'): array {
     $db = getDB();
 
@@ -85,7 +121,11 @@ function registerUser(string $fullName, string $email, string $password, string 
     return ['success' => true, 'user_id' => $db->lastInsertId()];
 }
 
-// ── Logout ────────────────────────────────────────────────────
+/**
+ * Destroy the current session and clear the session cookie.
+ *
+ * @return void
+ */
 function logoutUser(): void {
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
@@ -98,7 +138,11 @@ function logoutUser(): void {
     session_destroy();
 }
 
-// ── CSRF helpers ──────────────────────────────────────────────
+/**
+ * Generate or retrieve the CSRF token for the current session.
+ *
+ * @return string A 64-character hex CSRF token.
+ */
 function csrfToken(): string {
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
@@ -106,19 +150,43 @@ function csrfToken(): string {
     return $_SESSION['csrf_token'];
 }
 
+/**
+ * Validate a submitted CSRF token against the one stored in the session.
+ * Uses timing-safe comparison to prevent timing attacks.
+ *
+ * @param string $token The token submitted with the form.
+ * @return bool True if the token matches the session token.
+ */
 function verifyCsrf(string $token): bool {
     return isset($_SESSION['csrf_token']) && hash_equals($_SESSION['csrf_token'], $token);
 }
 
+/**
+ * Render a hidden HTML input field containing the current CSRF token.
+ * Include inside every state-changing form.
+ *
+ * @return string HTML input element string.
+ */
 function csrfField(): string {
     return '<input type="hidden" name="csrf_token" value="' . htmlspecialchars(csrfToken()) . '">';
 }
 
-// ── Flash messages ────────────────────────────────────────────
+/**
+ * Store a one-time flash message in the session for display on the next page load.
+ *
+ * @param string $type    Message category: 'success', 'danger', 'warning', or 'info'.
+ * @param string $message The message text to display.
+ * @return void
+ */
 function setFlash(string $type, string $message): void {
     $_SESSION['flash'] = ['type' => $type, 'message' => $message];
 }
 
+/**
+ * Retrieve and clear the current flash message from the session.
+ *
+ * @return array|null Associative array with 'type' and 'message', or null if none set.
+ */
 function getFlash(): ?array {
     if (isset($_SESSION['flash'])) {
         $flash = $_SESSION['flash'];
