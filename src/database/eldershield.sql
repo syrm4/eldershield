@@ -2,6 +2,27 @@
 -- ElderShield — Complete Database Schema (Simplified)
 -- Single file. Run once. No separate migrations needed.
 -- ============================================================
+--
+-- ⚠️  IMPORTANT SETUP INSTRUCTIONS — READ BEFORE IMPORTING
+-- ============================================================
+-- Step 1: Import this file into MySQL to create the schema.
+--         In phpMyAdmin: Import > choose this file > Go
+--         In terminal:   mysql -u root -p < eldershield.sql
+--
+-- Step 2: Immediately after importing, run seed.php to replace
+--         the placeholder password hashes with real bcrypt hashes.
+--         In terminal:   php src/database/seed.php
+--         In browser:    http://localhost/eldershield/src/database/seed.php
+--
+-- ⛔  DO NOT skip Step 2. The placeholder hashes in this file
+--     are NOT valid. Without running seed.php, nobody will be
+--     able to log in.
+--
+-- Default login credentials after running seed.php:
+--     Admin:     admin@eldershield.com  / password: admin123
+--     Elder:     dorothy@example.com   / password: elder123
+--     Caregiver: sarah@example.com     / password: care123
+-- ============================================================
 
 CREATE DATABASE IF NOT EXISTS eldershield
     CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -99,8 +120,8 @@ CREATE TABLE invoices (
 
 -- ============================================================
 -- SEED DATA
--- Run database/seed.php to generate correct bcrypt hashes.
--- These placeholder hashes will be replaced by seed.php.
+-- ⚠️  These placeholder hashes are NOT valid for login.
+--     Run database/seed.php immediately after importing this file.
 -- ============================================================
 INSERT INTO users (full_name, email, password_hash, role, plan) VALUES
     ('Admin User',      'admin@eldershield.com', '$2y$12$placeholder', 'admin',     'premium'),

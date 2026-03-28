@@ -1,0 +1,33 @@
+# ============================================================
+# ElderShield .gitignore
+# ============================================================
+
+# User uploaded files — never commit real uploads
+src/uploads/*
+# Keep the security .htaccess inside uploads/
+!src/uploads/.htaccess
+
+# macOS junk
+.DS_Store
+**/.DS_Store
+
+# Windows junk
+Thumbs.db
+desktop.ini
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# PHP environment / secrets (if ever added)
+.env
+*.env.local
+
+# Composer (if ever added)
+vendor/
+composer.lock
+
+# Log files
+*.log
