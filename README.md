@@ -54,6 +54,64 @@ Key capabilities:
 
 ---
 
+## Local Setup
+
+### Requirements
+- PHP 8.1+
+- MySQL 5.7.8+ or MariaDB 10.2.7+ (required for JSON column type)
+- Apache via MAMP (Mac) or WAMP (Windows)
+- PHP extensions: `pdo_mysql` and `curl`
+- [Ollama](https://ollama.ai) — optional, required only for AI scam analysis
+
+### Step 1 — Place the project files
+**MAMP (Mac):** Copy the project into `/Applications/MAMP/htdocs/eldershield/`  
+**WAMP (Windows):** Copy the project into `C:\wamp64\www\eldershield\`
+
+### Step 2 — Configure APP_URL
+Open `src/config/config.php` and uncomment the line that matches your setup:
+```php
+// define('APP_URL', 'http://localhost/eldershield/src');      // WAMP or MAMP Pro
+// define('APP_URL', 'http://localhost:8888/eldershield/src'); // MAMP Standard
+```
+
+### Step 3 — Configure the database port
+Open `src/config/db.php` and set `DB_PORT` to match your environment:
+- WAMP or MAMP Pro → `3306`
+- MAMP Standard → `8889`
+
+### Step 4 — Import the schema
+In phpMyAdmin, import `src/database/eldershield.sql`.
+This creates the database, all tables, and three starter accounts ready for login.
+
+### Step 5 — Enable PHP extensions (WAMP only)
+Left-click the WAMP tray icon → PHP → PHP Extensions → enable `php_pdo_mysql` and `php_curl`. WAMP will restart Apache automatically.
+
+> **WAMP users — security headers:** The app's security headers (CSP, X-Frame-Options, etc.) require `mod_headers` to be active. Left-click the WAMP tray icon → Apache → Apache Modules → enable `headers_module`. Without this the app still runs normally, but the security headers will not be applied.
+
+### Step 6 — Load demo data (optional but recommended)
+Visit the seed URL in your browser (adjust port if needed):
+```
+http://localhost/eldershield/src/database/seed.php
+```
+This populates 19 users, 30+ realistic scam incidents, caregiver links, and full analytics data. Delete `seed.php` after running it.
+
+### Step 7 — Set up Ollama (optional)
+Download from [ollama.ai](https://ollama.ai), then run:
+```bash
+ollama pull qwen3-vl:8b
+```
+The app runs without Ollama — submitted incidents will show an analysis error message until it is running.
+
+### Default Login Credentials
+
+| Role | Email | Password |
+|---|---|---|
+| Admin | admin@eldershield.com | password123 |
+| Elder | dorothy@example.com | password123 |
+| Caregiver | sarah@example.com | password123 |
+
+---
+
 ## AI Component (Key Differentiator)
 
 ElderShield uses **Ollama** running locally to analyze scam reports — no external API keys or internet connection required. The default model is `qwen2.5vl:7b`, a vision-capable model that can analyze both text descriptions and uploaded screenshots.
@@ -85,7 +143,7 @@ Admins can manually override any field or trigger a fresh AI re-run from the inc
 
 Built on **MySQL** with 5 tables in a fully relational design.
 
-![ERD Diagram](docs/ERD.png)
+![ERD Diagram](docs/Latest_ERD.png)
 
 ### Tables
 
