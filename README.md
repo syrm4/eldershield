@@ -5,7 +5,7 @@
 ![PHP](https://img.shields.io/badge/PHP-8.1+-777BB4?logo=php&logoColor=white)
 ![MySQL](https://img.shields.io/badge/MySQL-4479A1?logo=mysql&logoColor=white)
 ![Ollama](https://img.shields.io/badge/AI-Ollama%20Local-black)
-![License](https://img.shields.io/badge/License-MIT-green)
+[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 ![Status](https://img.shields.io/badge/Status-Prototype-orange)
 
 ElderShield protects elderly users from scams — phishing, impersonation, tech support fraud, romance scams, and more. Seniors submit suspicious messages or screenshots, a local AI model analyzes the content, and caregivers are automatically alerted to high-risk reports.
@@ -136,7 +136,7 @@ The app runs without Ollama — submitted incidents will show an analysis error 
 
 ## AI Component
 
-ElderShield uses **Ollama** running locally to analyze scam reports — no external API keys or internet connection required. The default model is `qwen2.5vl:7b`, a vision-capable model that can analyze both text descriptions and uploaded screenshots.
+ElderShield uses **Ollama** running locally to analyze scam reports — no external API keys or internet connection required. The default model is `qwen3-vl:8b`, a vision-capable model that can analyze both text descriptions and uploaded screenshots.
 
 Analysis runs **asynchronously** in a background CLI process so the elder's page loads immediately while the AI works. Results are saved to the database and the page auto-refreshes when ready.
 
