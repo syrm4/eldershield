@@ -5,7 +5,26 @@
 
 require_once __DIR__ . '/../config/config.php';
 
+// ── Helper: check if a function exists and is not disabled ───
+// Some hosts disable exec(), popen(), etc. in php.ini.
+// This check catches both missing functions and disabled ones.
+function isFunctionAvailable(string $funcName): bool {
+    if (!function_exists($funcName)) return false;
+    $disabled = array_map('trim', explode(',', ini_get('disable_functions')));
+    return !in_array($funcName, $disabled, true);
+}
+
 function analyzeIncident(string $text, ?string $imagePath = null): array {
+
+    // Guard: curl must be loaded for Ollama communication
+    if (!extension_loaded('curl')) {
+        error_log('[ElderShield] curl extension not loaded — AI analysis unavailable.');
+        return defaultAnalysis(
+            'The curl PHP extension is required for AI analysis. '
+            . 'Enable php_curl in your PHP configuration and restart your web server.'
+        );
+    }
+
     $systemPrompt = 'You are ElderShield, a scam detection assistant protecting elderly users. '
         . 'Analyze the submitted content and return ONLY a valid JSON object. '
         . 'No extra text, no markdown, no code fences, nothing before or after the JSON. '
@@ -79,6 +98,41 @@ function analyzeIncident(string $text, ?string $imagePath = null): array {
 }
 
 function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath = null): void {
+
+    // ── Check if async shell execution is available ───────────
+    // exec() (Mac/Linux) or popen() (Windows) may be disabled
+    // in php.ini on some environments. If so, fall back to
+    // running the analysis synchronously in the same request.
+    $canAsync = PHP_OS_FAMILY === 'Windows'
+        ? isFunctionAvailable('popen')
+        : isFunctionAvailable('exec');
+
+    if (!$canAsync) {
+        error_log(
+            '[ElderShield] exec()/popen() not available — '
+            . 'running synchronous analysis for incident #' . $incidentId
+        );
+        // Load helpers so saveAnalysis() and notifyCaregivers() are available
+        require_once __DIR__ . '/helpers.php';
+        $result = analyzeIncident($text, $imagePath);
+        saveAnalysis($incidentId, $result);
+        if ($result['scam_probability'] >= RISK_MEDIUM) {
+            $stmt = getDB()->prepare('SELECT user_id FROM incidents WHERE incident_id = ?');
+            $stmt->execute([$incidentId]);
+            $userId = $stmt->fetchColumn();
+            if ($userId) {
+                notifyCaregivers(
+                    $incidentId,
+                    (int)$userId,
+                    (int)$result['scam_probability'],
+                    $result['scam_category']
+                );
+            }
+        }
+        return;
+    }
+
+    // ── Async path ─────────────────────────────────────────
     $scriptPath = APP_ROOT . '/api/run_analysis.php';
     $tmpFile    = tempnam(sys_get_temp_dir(), 'es_');
     file_put_contents($tmpFile, $text);
@@ -86,8 +140,7 @@ function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath 
 
     if (PHP_OS_FAMILY === 'Windows') {
         // ── Windows (WAMP or MAMP for Windows) ──────────────────
-        // Locate php.exe — checks MAMP, WAMP, and system PATH in order
-        $phpBin = 'php'; // fallback to system PATH
+        $phpBin     = 'php';
         $candidates = array_merge(
             glob('C:\\MAMP\\bin\\php\\php*\\php.exe') ?: [],
             glob('C:\\wamp64\\bin\\php\\php*\\php.exe') ?: [],
@@ -95,10 +148,7 @@ function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath 
             ['C:\\php\\php.exe']
         );
         foreach ($candidates as $candidate) {
-            if (file_exists($candidate)) {
-                $phpBin = $candidate;
-                break;
-            }
+            if (file_exists($candidate)) { $phpBin = $candidate; break; }
         }
         $scriptPath = str_replace('/', DIRECTORY_SEPARATOR, $scriptPath);
         $cmd = sprintf(
@@ -112,17 +162,13 @@ function analyzeIncidentAsync(int $incidentId, string $text, ?string $imagePath 
         pclose(popen($cmd, 'r'));
     } else {
         // ── Mac / Linux (MAMP on Mac or any Unix-based server) ───
-        // Locate php binary — checks MAMP locations then falls back to system php
-        $phpBin = 'php'; // fallback to system PATH
+        $phpBin     = 'php';
         $candidates = array_merge(
             glob('/Applications/MAMP/bin/php/php*/bin/php') ?: [],
             ['/usr/local/bin/php', '/usr/bin/php']
         );
         foreach ($candidates as $candidate) {
-            if (file_exists($candidate)) {
-                $phpBin = $candidate;
-                break;
-            }
+            if (file_exists($candidate)) { $phpBin = $candidate; break; }
         }
         $cmd = sprintf(
             'nohup %s %s %s %s %s > /dev/null 2>&1 &',
