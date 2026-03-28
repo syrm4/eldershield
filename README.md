@@ -8,7 +8,7 @@
 ![License](https://img.shields.io/badge/License-MIT-green)
 ![Status](https://img.shields.io/badge/Status-Prototype-orange)
 
-ElderShield is a cybersecurity-focused web application designed to protect elderly users from scams such as phishing, impersonation fraud, tech support scams, romance scams, grandparent scams, and investment fraud. Seniors submit screenshots or descriptions of suspicious messages, calls, or emails. A local AI model (Ollama) analyzes the content and returns a plain-language risk assessment. Caregivers and admins are automatically notified of high-risk reports and can monitor, review, and intervene through a dedicated dashboard.
+ElderShield protects elderly users from scams — phishing, impersonation, tech support fraud, romance scams, and more. Seniors submit suspicious messages or screenshots, a local AI model analyzes the content, and caregivers are automatically alerted to high-risk reports.
 
 ---
 
@@ -44,7 +44,6 @@ ElderShield uses a three-role system with a role-aware interface for each user t
 ### Elder Interface
 A simplified, accessibility-first interface designed for seniors.
 
-Key capabilities:
 - Submit suspicious messages, calls, or emails for AI analysis (text + optional screenshot)
 - Receive a scam likelihood score (0–100%) with a plain-language explanation
 - View detected scam type and manipulation tactics
@@ -54,7 +53,6 @@ Key capabilities:
 ### Caregiver Dashboard
 A monitoring interface for family members and professional caregivers.
 
-Key capabilities:
 - Monitor incidents submitted by linked elders
 - Receive automatic notifications for medium (≥40%) and high-risk (≥70%) reports
 - View 7-day incident analytics: daily volume chart + top scam categories this week
@@ -64,7 +62,6 @@ Key capabilities:
 ### Admin Dashboard
 A full management console for platform administration.
 
-Key capabilities:
 - Manage all users, roles, and account status
 - Broadcast notifications to all users or send targeted messages to one user
 - Manually edit or re-run AI analysis on any incident
@@ -84,7 +81,7 @@ Key capabilities:
 
 ## Local Setup
 
-### Requirements
+### Prerequisites
 - PHP 8.1+
 - MySQL 5.7.8+ or MariaDB 10.2.7+ (required for JSON column type)
 - Apache via MAMP (Mac) or WAMP (Windows)
@@ -108,8 +105,7 @@ Open `src/config/db.php` and set `DB_PORT` to match your environment:
 - MAMP Standard → `8889`
 
 ### Step 4 — Import the schema
-In phpMyAdmin, import `src/database/eldershield.sql`.
-This creates the database, all tables, and three starter accounts ready for login.
+In phpMyAdmin, create a database named `eldershield`, then import `src/database/eldershield.sql`. This creates all tables and three starter accounts ready for login.
 
 ### Step 5 — Enable PHP extensions (WAMP only)
 Left-click the WAMP tray icon → PHP → PHP Extensions → enable `php_pdo_mysql` and `php_curl`. WAMP will restart Apache automatically.
