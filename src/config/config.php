@@ -52,7 +52,7 @@ set_time_limit(0);
 
 // ── Security headers ──────────────────────────────────────────
 if (!headers_sent()) {
-    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;");
+    header("Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; object-src 'none'; base-uri 'self';");
     header("X-Content-Type-Options: nosniff");
     header("X-Frame-Options: SAMEORIGIN");
     header("Referrer-Policy: strict-origin-when-cross-origin");
