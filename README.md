@@ -257,15 +257,15 @@ Built on **MySQL** with 5 tables in a fully relational design.
 
 ## Cybersecurity & Privacy
 
-- All database queries use **PDO prepared statements** — no SQL injection possible
-- Passwords hashed with **bcrypt** (cost factor 12); minimum 7 characters enforced at both form and server level
+- **PDO prepared statements** — all database queries parameterized; no SQL injection possible
+- **bcrypt password hashing** — cost factor 12; minimum 7 characters enforced at form and server level
 - **CSRF tokens** on every state-changing form
 - **Session ID regeneration** on login (prevents session fixation attacks)
-- Uploaded images validated by MIME type, `getimagesize()`, and extension whitelist (JPG, PNG, GIF, WEBP)
-- PHP execution **blocked** in the `uploads/` directory via `.htaccess`
-- All user-generated output escaped with `htmlspecialchars()` via the `e()` helper
-- Security headers on every response: `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
-- AI runs **fully locally via Ollama** — no user data is transmitted to any external service
+- **Image validation** — uploads checked by MIME type, `getimagesize()`, and extension whitelist (JPG, PNG, GIF, WEBP)
+- **PHP execution blocked** in the `uploads/` directory via `.htaccess`
+- **Output escaping** — all user-generated content escaped with `htmlspecialchars()` via the `e()` helper
+- **Security headers** on every response: `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`
+- **Local AI only** — Ollama runs fully offline; no user data transmitted to any external service
 
 ---
 
