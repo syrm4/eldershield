@@ -1,0 +1,5 @@
+# Block all web access to this directory.
+# These files (seed.php, eldershield.sql) are setup tools only
+# and must never be accessible via a browser.
+Order Deny,Allow
+Deny from all
