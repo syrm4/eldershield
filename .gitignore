@@ -4,7 +4,8 @@
 
 # User uploaded files — never commit real uploads
 src/uploads/*
-# Keep the security .htaccess inside uploads/
+# Keep the directory itself and its security files tracked
+!src/uploads/.gitkeep
 !src/uploads/.htaccess
 
 # macOS junk
